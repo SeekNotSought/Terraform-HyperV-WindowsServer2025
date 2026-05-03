@@ -40,3 +40,14 @@ variable "admin_password" {
   description = "Local Administrator password"
   sensitive   = true
 }
+
+variable "vhd_size_gb" {
+  type = number
+  description = "Size of the VHDX in GB"
+  default = 80
+}
+
+variable "autounattend_iso_path" {
+  type = string
+  description = "Path to ISO containing autounattend.xml for unattended setup"
+}
