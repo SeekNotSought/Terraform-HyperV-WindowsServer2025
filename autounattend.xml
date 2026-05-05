@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    autounattend.xml — Unattended install answer file for Windows Server 2025
+    Used by Windows Setup to fully automate OS installation on Hyper-V Gen 2 VMs.
+
+    BEFORE USE:
+      1. Replace PLACEHOLDER_PASSWORD with your actual administrator password
+         in BOTH <AdministratorPassword> blocks (windowsPE and oobeSystem passes).
+      2. Replace PLACEHOLDER_USERNAME if you want a custom local account name.
+      3. Adjust <ProductKey> if you are using a retail/volume key instead of
+         the generic KMS evaluation key provided below.
+      4. Burn this file to a small ISO and attach it as a second DVD drive in
+         windows2025_vm.tf (see README for instructions).
+
+    Windows Setup automatically detects autounattend.xml on any attached drive
+    root, including a DVD. No path configuration is required.
+-->
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+
+    <!-- ================================================================
+         PASS 1: windowsPE
+         Runs inside the Windows PE environment before setup begins.
+         Configures disk layout, regional settings, and edition selection.
+         ================================================================ -->
+    <settings pass="windowsPE">
+
+        <!-- Setup UI language during install -->
+        <component name="Microsoft-Windows-International-Core-WinPE"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+            <SetupUILanguage>
+                <UILanguage>en-US</UILanguage>
+            </SetupUILanguage>
+            <InputLocale>en-US</InputLocale>
+            <SystemLocale>en-US</SystemLocale>
+            <UILanguage>en-US</UILanguage>
+            <UserLocale>en-US</UserLocale>
+        </component>
+
+        <!-- Setup source, edition, and disk configuration -->
+        <component name="Microsoft-Windows-Setup"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+
+            <!--
+                Generic KMS key for Windows Server 2025 Standard (Desktop Experience).
+                This activates evaluation/trial mode for setup — replace with a
+                volume or retail key for production licensing.
+                Standard (Core):             TVRH6-WHNXV-R9WG3-9XRFY-MY832
+                Standard (Desktop Experience): VDYBN-27WPP-V4HQT-9VMD4-VMK7H
+                Datacenter (Core):           CB7KF-BWN84-R7R2Y-793K2-8XDDG
+                Datacenter (Desktop Experience): D764K-2NDRG-47T6Q-P8T8W-YP6DF
+            -->
+            <UserData>
+                <ProductKey>
+                    <Key>VDYBN-27WPP-V4HQT-9VMD4-VMK7H</Key>
+                    <WillShowUI>Never</WillShowUI>
+                </ProductKey>
+                <AcceptEula>true</AcceptEula>
+                <FullName>Administrator</FullName>
+                <Organization>Lab</Organization>
+            </UserData>
+
+            <!-- Disk partitioning for UEFI / Gen 2 Hyper-V (GPT required) -->
+            <DiskConfiguration>
+                <Disk wcm:action="add">
+                    <DiskID>0</DiskID>
+                    <WillWipeDisk>true</WillWipeDisk>
+                    <CreatePartitions>
+
+                        <!-- Partition 1: EFI System Partition (ESP) — 100 MB -->
+                        <CreatePartition wcm:action="add">
+                            <Order>1</Order>
+                            <Type>EFI</Type>
+                            <Size>100</Size>
+                        </CreatePartition>
+
+                        <!-- Partition 2: Microsoft Reserved (MSR) — 16 MB -->
+                        <CreatePartition wcm:action="add">
+                            <Order>2</Order>
+                            <Type>MSR</Type>
+                            <Size>16</Size>
+                        </CreatePartition>
+
+                        <!-- Partition 3: Windows OS partition — remaining disk space -->
+                        <CreatePartition wcm:action="add">
+                            <Order>3</Order>
+                            <Type>Primary</Type>
+                            <Extend>true</Extend>
+                        </CreatePartition>
+
+                    </CreatePartitions>
+                    <ModifyPartitions>
+
+                        <!-- Format EFI partition as FAT32 -->
+                        <ModifyPartition wcm:action="add">
+                            <Order>1</Order>
+                            <PartitionID>1</PartitionID>
+                            <Label>System</Label>
+                            <Format>FAT32</Format>
+                        </ModifyPartition>
+
+                        <!-- MSR does not need formatting -->
+                        <ModifyPartition wcm:action="add">
+                            <Order>2</Order>
+                            <PartitionID>2</PartitionID>
+                        </ModifyPartition>
+
+                        <!-- Format OS partition as NTFS, assign drive letter C -->
+                        <ModifyPartition wcm:action="add">
+                            <Order>3</Order>
+                            <PartitionID>3</PartitionID>
+                            <Label>Windows</Label>
+                            <Format>NTFS</Format>
+                            <Letter>C</Letter>
+                        </ModifyPartition>
+
+                    </ModifyPartitions>
+                </Disk>
+            </DiskConfiguration>
+
+            <!-- Install Windows to disk 0, partition 3 (the OS partition) -->
+            <ImageInstall>
+                <OSImage>
+                    <InstallTo>
+                        <DiskID>0</DiskID>
+                        <PartitionID>3</PartitionID>
+                    </InstallTo>
+                    <WillShowUI>Never</WillShowUI>
+                    <InstallToAvailablePartition>false</InstallToAvailablePartition>
+                </OSImage>
+            </ImageInstall>
+
+        </component>
+    </settings>
+
+    <!-- ================================================================
+         PASS 2: specialize
+         Runs after the first reboot. Configures hostname, networking
+         basics, and disables non-essential UI prompts.
+         ================================================================ -->
+    <settings pass="specialize">
+        <component name="Microsoft-Windows-Shell-Setup"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+            <!-- Set the computer name — change to match var.vm_name if desired -->
+            <ComputerName>win2025-lab</ComputerName>
+            <TimeZone>Eastern Standard Time</TimeZone>
+        </component>
+
+        <!-- Disable Server Manager from auto-launching at logon -->
+        <component name="Microsoft-Windows-ServerManager-SvrMgrNc"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+            <DoNotOpenServerManagerAtLogon>true</DoNotOpenServerManagerAtLogon>
+        </component>
+    </settings>
+
+    <!-- ================================================================
+         PASS 3: oobeSystem
+         Runs during the Out-of-Box Experience (OOBE) phase.
+         Sets the administrator password, suppresses all OOBE prompts,
+         and configures the first-logon user account.
+         ================================================================ -->
+    <settings pass="oobeSystem">
+        <component name="Microsoft-Windows-Shell-Setup"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+
+            <!-- Suppress all interactive OOBE screens -->
+            <OOBE>
+                <HideEULAPage>true</HideEULAPage>
+                <HideLocalAccountScreen>true</HideLocalAccountScreen>
+                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+                <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+                <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+                <ProtectYourPC>3</ProtectYourPC>
+                <NetworkLocation>Work</NetworkLocation>
+            </OOBE>
+
+            <!-- Built-in Administrator account password -->
+            <!-- !! REPLACE PLACEHOLDER_PASSWORD WITH YOUR ACTUAL PASSWORD !! -->
+            <UserAccounts>
+                <AdministratorPassword>
+                    <Value>PLACEHOLDER_PASSWORD</Value>
+                    <PlainText>true</PlainText>
+                </AdministratorPassword>
+
+                <!--
+                    Optional: create a named local account in addition to Administrator.
+                    Remove this block if you only want the built-in Administrator account.
+                -->
+                <LocalAccounts>
+                    <LocalAccount wcm:action="add">
+                        <Name>PLACEHOLDER_USERNAME</Name>
+                        <DisplayName>PLACEHOLDER_USERNAME</DisplayName>
+                        <Group>Administrators</Group>
+                        <Password>
+                            <Value>PLACEHOLDER_PASSWORD</Value>
+                            <PlainText>true</PlainText>
+                        </Password>
+                    </LocalAccount>
+                </LocalAccounts>
+            </UserAccounts>
+
+            <!-- Auto-logon once after setup completes (optional, useful for post-setup scripts) -->
+            <AutoLogon>
+                <Enabled>true</Enabled>
+                <LogonCount>1</LogonCount>
+                <Username>Administrator</Username>
+                <Password>
+                    <Value>PLACEHOLDER_PASSWORD</Value>
+                    <PlainText>true</PlainText>
+                </Password>
+            </AutoLogon>
+
+            <!-- Run once on first logon: enable WinRM for Terraform/Ansible remote management -->
+            <FirstLogonCommands>
+                <SynchronousCommand wcm:action="add">
+                    <Order>1</Order>
+                    <Description>Enable WinRM for remote management</Description>
+                    <CommandLine>powershell.exe -NonInteractive -ExecutionPolicy Bypass -Command "Enable-PSRemoting -Force; Set-Item WSMan:\localhost\Service\AllowUnencrypted -Value $true; Set-Item WSMan:\localhost\Service\Auth\Basic -Value $true; netsh advfirewall firewall add rule name='WinRM HTTP' protocol=TCP dir=in localport=5985 action=allow; netsh advfirewall firewall add rule name='WinRM HTTPS' protocol=TCP dir=in localport=5986 action=allow"</CommandLine>
+                    <RequiresUserInput>false</RequiresUserInput>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>2</Order>
+                    <Description>Set WinRM to start automatically</Description>
+                    <CommandLine>powershell.exe -NonInteractive -ExecutionPolicy Bypass -Command "Set-Service WinRM -StartupType Automatic; Start-Service WinRM"</CommandLine>
+                    <RequiresUserInput>false</RequiresUserInput>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>3</Order>
+                    <Description>Disable Windows Firewall for Domain and Private profiles (lab use only)</Description>
+                    <CommandLine>powershell.exe -NonInteractive -ExecutionPolicy Bypass -Command "Set-NetFirewallProfile -Profile Domain,Private -Enabled False"</CommandLine>
+                    <RequiresUserInput>false</RequiresUserInput>
+                </SynchronousCommand>
+            </FirstLogonCommands>
+
+        </component>
+
+        <!-- Regional/locale settings applied at OOBE -->
+        <component name="Microsoft-Windows-International-Core"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+            <InputLocale>en-US</InputLocale>
+            <SystemLocale>en-US</SystemLocale>
+            <UILanguage>en-US</UILanguage>
+            <UserLocale>en-US</UserLocale>
+        </component>
+
+    </settings>
+
+</unattend>
