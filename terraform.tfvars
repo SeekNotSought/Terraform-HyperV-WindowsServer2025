@@ -7,5 +7,6 @@ vhd_path            = "D:\\Hyper-V\\Virtual Hard Disks\\win2025.vhdx"
 virtual_switch_name = "ExternalSwitch"
 
 # Placeholder for passwords. Will be removing to make the deployment not have hardcoded passwords.
-admin_username = "Administrator"
-admin_password = "SuperSecurePassword123!"
+admin_username        = "Administrator"
+admin_password        = "SuperSecurePassword123!"
+autounattend_iso_path = "D:\\ISOs\\autounattend.iso"
