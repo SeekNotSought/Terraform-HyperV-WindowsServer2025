@@ -41,7 +41,7 @@ resource "hyperv_machine_instance" "windows2025" {
   }
 
   vm_firmware {
-    enable_secure_boot   = "On"
+    enable_secure_boot   = "Off"
     secure_boot_template = "MicrosoftUEFICertificateAuthority"
 
     boot_order {

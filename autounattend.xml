@@ -4,9 +4,9 @@
     Used by Windows Setup to fully automate OS installation on Hyper-V Gen 2 VMs.
 
     BEFORE USE:
-      1. Replace PLACEHOLDER_PASSWORD with your actual administrator password
+      1. Replace SuperSecurePassword123! with your actual administrator password
          in BOTH <AdministratorPassword> blocks (windowsPE and oobeSystem passes).
-      2. Replace PLACEHOLDER_USERNAME if you want a custom local account name.
+      2. Replace hyperv-admin if you want a custom local account name.
       3. Adjust <ProductKey> if you are using a retail/volume key instead of
          the generic KMS evaluation key provided below.
       4. Burn this file to a small ISO and attach it as a second DVD drive in
@@ -58,12 +58,8 @@
                 Datacenter (Desktop Experience): D764K-2NDRG-47T6Q-P8T8W-YP6DF
             -->
             <UserData>
-                <ProductKey>
-                    <Key>VDYBN-27WPP-V4HQT-9VMD4-VMK7H</Key>
-                    <WillShowUI>Never</WillShowUI>
-                </ProductKey>
                 <AcceptEula>true</AcceptEula>
-                <FullName>Administrator</FullName>
+                <FullName>hyperv-admin</FullName>
                 <Organization>Lab</Organization>
             </UserData>
 
@@ -194,10 +190,10 @@
             </OOBE>
 
             <!-- Built-in Administrator account password -->
-            <!-- !! REPLACE PLACEHOLDER_PASSWORD WITH YOUR ACTUAL PASSWORD !! -->
+            <!-- !! REPLACE SuperSecurePassword123! WITH YOUR ACTUAL PASSWORD !! -->
             <UserAccounts>
                 <AdministratorPassword>
-                    <Value>PLACEHOLDER_PASSWORD</Value>
+                    <Value>SuperSecurePassword123!</Value>
                     <PlainText>true</PlainText>
                 </AdministratorPassword>
 
@@ -207,11 +203,11 @@
                 -->
                 <LocalAccounts>
                     <LocalAccount wcm:action="add">
-                        <Name>PLACEHOLDER_USERNAME</Name>
-                        <DisplayName>PLACEHOLDER_USERNAME</DisplayName>
+                        <Name>hyperv-admin</Name>
+                        <DisplayName>hyperv-admin</DisplayName>
                         <Group>Administrators</Group>
                         <Password>
-                            <Value>PLACEHOLDER_PASSWORD</Value>
+                            <Value>SuperSecurePassword123!</Value>
                             <PlainText>true</PlainText>
                         </Password>
                     </LocalAccount>
@@ -222,9 +218,9 @@
             <AutoLogon>
                 <Enabled>true</Enabled>
                 <LogonCount>1</LogonCount>
-                <Username>Administrator</Username>
+                <Username>hyperv-admin</Username>
                 <Password>
-                    <Value>PLACEHOLDER_PASSWORD</Value>
+                    <Value>SuperSecurePassword123!</Value>
                     <PlainText>true</PlainText>
                 </Password>
             </AutoLogon>
